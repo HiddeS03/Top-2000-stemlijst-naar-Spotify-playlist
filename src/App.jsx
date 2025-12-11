@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '';
-const SPOTIFY_REDIRECT_URI = window.location.origin + '/top2000-to-spotify/';
+const SPOTIFY_REDIRECT_URI = 'http://127.0.0.1:5173/top2000-to-spotify/';
 const SPOTIFY_AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
 const SPOTIFY_SCOPES = 'playlist-modify-public playlist-modify-private';
 
@@ -14,25 +14,99 @@ function App() {
   const [songs, setSongs] = useState([]);
   const [accessToken, setAccessToken] = useState('');
 
-  // Get access token from URL hash after Spotify redirect
+  // Get access token from URL query params after Spotify redirect (PKCE flow)
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash) {
-      const params = new URLSearchParams(hash.substring(1));
-      const token = params.get('access_token');
-      if (token) {
-        setAccessToken(token);
-        window.location.hash = '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    
+    if (code) {
+      console.log('📝 Authorization code received:', code.substring(0, 20) + '...');
+      // Exchange authorization code for access token
+      const codeVerifier = localStorage.getItem('code_verifier');
+      if (codeVerifier) {
+        console.log('✅ Code verifier found in localStorage');
+        exchangeCodeForToken(code, codeVerifier);
+      } else {
+        console.error('❌ Code verifier not found in localStorage');
+        setError('Authentication session expired. Please try connecting to Spotify again.');
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
   }, []);
 
-  const authenticateSpotify = () => {
+  const generateRandomString = (length) => {
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const values = crypto.getRandomValues(new Uint8Array(length));
+    return values.reduce((acc, x) => acc + possible[x % possible.length], '');
+  };
+
+  const sha256 = async (plain) => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(plain);
+    return window.crypto.subtle.digest('SHA-256', data);
+  };
+
+  const base64encode = (input) => {
+    return btoa(String.fromCharCode(...new Uint8Array(input)))
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+  };
+
+  const exchangeCodeForToken = async (code, codeVerifier) => {
+    const params = new URLSearchParams({
+      client_id: SPOTIFY_CLIENT_ID,
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: SPOTIFY_REDIRECT_URI,
+      code_verifier: codeVerifier,
+    });
+
+    try {
+      console.log('🔄 Exchanging authorization code for access token...');
+      const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Token exchange failed:', errorData);
+        throw new Error(`Failed to exchange code for token: ${errorData.error_description || errorData.error}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Successfully obtained access token');
+      setAccessToken(data.access_token);
+      localStorage.removeItem('code_verifier');
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setSuccess('Successfully authenticated with Spotify! You can now create playlists.');
+    } catch (err) {
+      setError(`Failed to authenticate with Spotify: ${err.message}`);
+      console.error('Token exchange error:', err);
+      localStorage.removeItem('code_verifier');
+    }
+  };
+
+  const authenticateSpotify = async () => {
     if (!SPOTIFY_CLIENT_ID) {
       setError('Spotify Client ID is not configured. Please check the setup instructions in the README.');
       return;
     }
-    const authUrl = `${SPOTIFY_AUTH_ENDPOINT}?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}&response_type=token&show_dialog=true`;
+
+    const codeVerifier = generateRandomString(64);
+    const hashed = await sha256(codeVerifier);
+    const codeChallenge = base64encode(hashed);
+
+    localStorage.setItem('code_verifier', codeVerifier);
+
+    const authUrl = `${SPOTIFY_AUTH_ENDPOINT}?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}&response_type=code&code_challenge_method=S256&code_challenge=${codeChallenge}&show_dialog=true`;
     window.location.href = authUrl;
   };
 
@@ -43,37 +117,159 @@ function App() {
     setSongs([]);
 
     try {
-      // Extract the submission ID from the URL
-      const urlMatch = url.match(/inzending\/([a-f0-9-]+)/);
-      if (!urlMatch) {
-        throw new Error('Invalid NPO Radio 2 Top 2000 link. Please check the URL format.');
-      }
+      console.log('🔍 Fetching submission page:', url);
 
-      const submissionId = urlMatch[1];
-      
-      // Fetch the submission data from NPO API
-      const response = await fetch(`https://npo.nl/api/stem/npo-radio-2-top-2000-2025/inzending/${submissionId}`);
+      // Use CORS proxy to bypass browser CORS restrictions
+      // Note: For production, you should use your own backend proxy
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+      console.log('🔄 Using CORS proxy:', proxyUrl);
+
+      // Fetch the HTML page directly (server-rendered Next.js with embedded data)
+      const response = await fetch(proxyUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch data from NPO. Please check if the link is valid.');
+        console.error('❌ HTTP Error:', response.status, response.statusText);
+        throw new Error(`Failed to fetch the submission page (${response.status}). The link may be invalid or expired.`);
       }
 
-      const data = await response.json();
-      
-      // Extract songs from the submission
-      if (data && data.songs && Array.isArray(data.songs)) {
-        const songList = data.songs.map(song => ({
-          title: song.title || song.name,
-          artist: song.artist || song.performer,
-        }));
-        setSongs(songList);
-        setSuccess(`Found ${songList.length} songs in your Top 2000 list!`);
+      const html = await response.text();
+      console.log('📄 HTML length:', html.length);
+      console.log('📄 First 500 chars:', html.substring(0, 500));
+
+      // Look for __NEXT_DATA__ script tag
+      const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s);
+      if (nextDataMatch) {
+        console.log('✅ Found __NEXT_DATA__ script tag');
+        try {
+          const nextData = JSON.parse(nextDataMatch[1]);
+          console.log('📦 __NEXT_DATA__ structure:', JSON.stringify(nextData, null, 2));
+        } catch (e) {
+          console.error('❌ Failed to parse __NEXT_DATA__:', e);
+        }
       } else {
-        throw new Error('No songs found in the submission.');
+        console.log('⚠️ No __NEXT_DATA__ script tag found');
       }
+
+      // Look for self.__next_f.push blocks - they contain the song data
+      const pushBlocks = html.match(/self\.__next_f\.push\(\[.*?\]\)/g);
+      if (!pushBlocks) {
+        throw new Error('Could not find Next.js data in the page. The page structure may have changed.');
+      }
+
+      console.log(`✅ Found ${pushBlocks.length} self.__next_f.push blocks`);
+      
+      // Log blocks that contain artist/title
+      let blocksWithSongs = [];
+      for (let i = 0; i < pushBlocks.length; i++) {
+        const block = pushBlocks[i];
+        const hasArtist = block.includes('artist');
+        const hasTitle = block.includes('title');
+        const hasTracks = block.includes('tracks');
+        
+        if (hasArtist && hasTitle) {
+          console.log(`📋 Block ${i}: length=${block.length}, hasArtist=${hasArtist}, hasTitle=${hasTitle}, hasTracks=${hasTracks}`);
+          blocksWithSongs.push(i);
+        }
+      }
+      
+      console.log(`🎵 Blocks with song data: ${blocksWithSongs.join(', ')}`);
+      
+      // Search through all blocks for the tracks array
+      let extractedSongs = [];
+      for (let i = 0; i < pushBlocks.length; i++) {
+        const block = pushBlocks[i];
+        
+        // Look for blocks containing artist and title
+        if (!block.includes('artist') || !block.includes('title')) {
+          continue;
+        }
+        
+        console.log(`🎵 Processing block ${i} for song extraction`);
+        console.log('🎵 Block length:', block.length);
+        console.log('🎵 Block preview (first 1000):', block.substring(0, 1000));
+        
+        try {
+          // Extract all track objects using a more flexible regex
+          const trackPattern = /\{[^}]*?"artist"[^}]*?"title"[^}]*?\}/g;
+          const trackMatches = block.match(trackPattern);
+            
+            if (!trackMatches) {
+              console.log('⚠️ No track objects found with simple pattern, trying alternative...');
+              
+              // Try alternative: look for escaped JSON
+              const escapedPattern = /\{\\"artist\\":\\"([^"]+)\\",.*?\\"title\\":\\"([^"]+)\\"/g;
+              let match;
+              const tracks = [];
+              while ((match = escapedPattern.exec(block)) !== null) {
+                tracks.push({
+                  artist: match[1],
+                  title: match[2]
+                });
+              }
+              
+              if (tracks.length > 0) {
+                console.log(`✅ Extracted ${tracks.length} songs using escaped pattern`);
+                extractedSongs = tracks;
+                break;
+              }
+              continue;
+            }
+            
+            console.log(`🔍 Found ${trackMatches.length} potential track objects`);
+            
+            // Try to parse each track object
+            const tracks = [];
+            for (const trackStr of trackMatches) {
+              try {
+                // Clean up the string and try to parse it
+                let cleaned = trackStr.replace(/\\\\/g, '\\').replace(/\\"/g, '"');
+                const track = JSON.parse(cleaned);
+                
+                if (track.artist && track.title) {
+                  tracks.push({
+                    artist: track.artist,
+                    title: track.title
+                  });
+                }
+              } catch (e) {
+                // Try extracting with regex if JSON parse fails
+                const artistMatch = trackStr.match(/"artist"\s*:\s*"([^"]+)"/);
+                const titleMatch = trackStr.match(/"title"\s*:\s*"([^"]+)"/);
+                
+                if (artistMatch && titleMatch) {
+                  tracks.push({
+                    artist: artistMatch[1],
+                    title: titleMatch[1]
+                  });
+                }
+              }
+            }
+            
+            if (tracks.length > 0) {
+              console.log(`✅ Extracted ${tracks.length} songs from track objects`);
+            extractedSongs = tracks;
+            break;
+          }
+        } catch (e) {
+          console.error('❌ Error parsing tracks:', e);
+        }
+      }
+      
+      if (extractedSongs.length === 0) {
+        throw new Error('Could not find any songs in the submission. The page may not contain a valid submission.');
+      }
+
+      // Display the extracted songs
+      console.log('🎵 Final extracted songs:', extractedSongs);
+      setSongs(extractedSongs);
+      setSuccess(`Successfully loaded ${extractedSongs.length} songs from your Top 2000 submission!`);
     } catch (err) {
       setError(err.message || 'An error occurred while fetching the songs.');
-      console.error('Error:', err);
+      console.error('❌ Error:', err);
     } finally {
       setLoading(false);
     }
@@ -208,6 +404,12 @@ function App() {
       {!SPOTIFY_CLIENT_ID && (
         <div className="message error-message" style={{ marginBottom: '1rem' }}>
           <strong>Configuration Required:</strong> Spotify Client ID is not configured. Please check the README for setup instructions.
+        </div>
+      )}
+
+      {accessToken && (
+        <div className="message success-message" style={{ marginBottom: '1rem' }}>
+          <strong>✅ Connected to Spotify!</strong> You can now create playlists.
         </div>
       )}
 

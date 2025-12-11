@@ -27,29 +27,34 @@ This guide will walk you through setting up the Top 2000 to Spotify converter ap
 ## Step 2: Local Development Setup
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/HiddeS03/top2000-to-spotify.git
    cd top2000-to-spotify
    ```
 
 2. Install dependencies:
+
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. Create a `.env` file in the project root:
+
    ```bash
    cp .env.example .env
    ```
 
 4. Edit the `.env` file and add your Spotify Client ID:
+
    ```
    VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
    ```
 
 5. Start the development server:
+
    ```bash
-   npm run dev
+   pnpm dev
    ```
 
 6. Open your browser and navigate to `http://localhost:5173/top2000-to-spotify/`
@@ -67,6 +72,7 @@ This guide will walk you through setting up the Top 2000 to Spotify converter ap
 7. Click "Add secret"
 
 8. Push your changes to the `main` branch:
+
    ```bash
    git checkout main
    git merge copilot/create-react-static-page
@@ -90,19 +96,23 @@ This guide will walk you through setting up the Top 2000 to Spotify converter ap
 ## Troubleshooting
 
 ### "Spotify Client ID is not configured" error
+
 - Make sure you've added the `VITE_SPOTIFY_CLIENT_ID` secret in GitHub repository settings
 - For local development, ensure your `.env` file exists and contains the Client ID
 - Rebuild the application after adding the environment variable
 
 ### "Invalid NPO Radio 2 Top 2000 link" error
+
 - Ensure you're using the correct URL format from the NPO voting site
 - The URL should contain `/inzending/` followed by a UUID
 
 ### Spotify authentication fails
+
 - Verify that the redirect URI in your Spotify app settings matches your deployment URL exactly
 - Make sure you've added both the production URL and local development URL if you're testing locally
 
 ### No tracks found on Spotify
+
 - Some songs might not be available on Spotify
 - The app searches for tracks using the song title and artist name
 - Track availability may vary by region

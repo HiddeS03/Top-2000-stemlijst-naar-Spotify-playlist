@@ -24,24 +24,24 @@ Convert your NPO Radio 2 Top 2000 voting list to a Spotify playlist with just on
 ### Prerequisites
 
 - Node.js 20 or higher
-- npm
+- pnpm (recommended) or npm
 
 ### Installation
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### Development
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ### Build
 
 ```bash
-npm run build
+pnpm build
 ```
 
 ## Spotify API Configuration
