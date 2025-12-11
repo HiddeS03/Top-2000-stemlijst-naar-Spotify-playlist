@@ -1,13 +1,68 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Top 2000 to Spotify Playlist Converter</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="./src/main.jsx"></script>
-  </body>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Top 2000 to Spotify Converter</h1>
+        <p class="subtitle">
+            Convert your NPO Radio 2 Top 2000 voting list to a Spotify playlist
+        </p>
+
+        <div id="config-warning" class="message error-message" style="margin-bottom: 1rem; display: none;">
+            <strong>Configuration Required:</strong> Spotify Client ID is not configured. Please check the README for setup instructions.
+        </div>
+
+        <div id="spotify-connected" class="message success-message" style="margin-bottom: 1rem; display: none;">
+            <strong>✅ Connected to Spotify!</strong> You can now create playlists.
+        </div>
+
+        <form id="input-form" class="input-form">
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="npo-link-input"
+                    placeholder="Paste your NPO Radio 2 Top 2000 submission link here..."
+                    class="link-input"
+                />
+                <button type="submit" id="fetch-button" class="fetch-button">
+                    Fetch Songs
+                </button>
+            </div>
+        </form>
+
+        <div id="error-message" class="message error-message" style="display: none;"></div>
+
+        <div id="success-message" class="message success-message" style="display: none;"></div>
+
+        <div id="songs-section" class="songs-section" style="display: none;">
+            <h2>Songs Found (<span id="songs-count">0</span>)</h2>
+            <div id="songs-list" class="songs-list"></div>
+            <button id="spotify-button" class="spotify-button">
+                Connect to Spotify
+            </button>
+        </div>
+
+        <div class="instructions">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Go to the NPO Radio 2 Top 2000 voting site and create your list</li>
+                <li>Copy the submission URL (e.g., https://npo.nl/luister/stem/.../inzending/...)</li>
+                <li>Paste the URL above and click "Fetch Songs"</li>
+                <li>Click "Connect to Spotify" to authorize the app</li>
+                <li>Your playlist will be created and opened in Spotify!</li>
+            </ol>
+            <p class="note">
+                <strong>Note:</strong> You need to configure your Spotify Client ID in the code for this to work.
+                Visit the <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify Developer Dashboard</a> to create an app and get your Client ID.
+            </p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
 </html>

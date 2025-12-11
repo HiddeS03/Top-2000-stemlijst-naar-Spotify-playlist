@@ -9,7 +9,8 @@ Convert your NPO Radio 2 Top 2000 voting list to a Spotify playlist with just on
 - 🎵 Parse NPO Radio 2 Top 2000 submission links
 - 🔍 Automatically search for songs on Spotify
 - 📝 Create a playlist directly in your Spotify account
-- 🚀 Fully static React application hosted on GitHub Pages
+- 🚀 Fully static HTML/CSS/JavaScript website hosted on GitHub Pages
+- ⚡ No build process required - runs directly in the browser
 
 ## How to Use
 
@@ -21,62 +22,93 @@ Convert your NPO Radio 2 Top 2000 voting list to a Spotify playlist with just on
 6. Click "Connect to Spotify" to authorize the app
 7. Your playlist will be created and opened automatically!
 
-## Setup for Developers
-
-### Prerequisites
-
-- Node.js 20 or higher
-- pnpm (recommended) or npm
-
-### Installation
-
-```bash
-pnpm install
-```
-
-### Development
-
-```bash
-pnpm dev
-```
-
-### Build
-
-```bash
-pnpm build
-```
-
 ## Spotify API Configuration
 
-To use this application, you need to set up a Spotify Developer application:
+To use this application, you need to configure your Spotify Client ID:
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Create a new app
-3. Add `https://hiddes03.github.io/top2000-to-spotify/` to the Redirect URIs (or your local dev URL for development)
+3. Add `https://hiddes03.github.io/top2000-to-spotify/` to the Redirect URIs
 4. Copy your Client ID
-5. Create a `.env` file in the project root (use `.env.example` as template)
-6. Set `VITE_SPOTIFY_CLIENT_ID` to your Client ID
+5. Edit `app.js` and replace the empty `SPOTIFY_CLIENT_ID` variable with your Client ID:
+   ```javascript
+   const SPOTIFY_CLIENT_ID = "your_client_id_here";
+   ```
 
-## Deployment
+## Deployment to GitHub Pages
 
-The application is automatically deployed to GitHub Pages using GitHub Actions when changes are pushed to the main branch.
+### Option 1: Direct Deployment (Recommended)
 
-### GitHub Pages Setup
+Since this is a static website with no build process, you can deploy it directly:
 
-1. Go to your repository settings
-2. Navigate to Pages section
-3. Set Source to "GitHub Actions"
-4. Navigate to Settings > Secrets and variables > Actions
-5. Add a new repository secret named `VITE_SPOTIFY_CLIENT_ID` with your Spotify Client ID
-6. The workflow will automatically build and deploy the site with the configured Client ID
+1. Push all files (`index.html`, `styles.css`, `app.js`) to your repository
+2. Go to your repository settings on GitHub
+3. Navigate to Pages section
+4. Set Source to "Deploy from a branch"
+5. Select the `main` branch and `/ (root)` folder
+6. Click Save
+7. Your site will be available at `https://hiddes03.github.io/top2000-to-spotify/`
+
+### Option 2: Using GitHub Actions
+
+If you prefer automated deployments, create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+## Local Development
+
+No build tools or dependencies required! Simply:
+
+1. Clone the repository
+2. Edit `app.js` to add your Spotify Client ID
+3. Open `index.html` in your browser or use a local server:
+
+   ```bash
+   # Using Python
+   python -m http.server 8000
+
+   # Using Node.js
+   npx serve .
+   ```
 
 ## Technologies Used
 
-- React 19
-- Vite
-- Spotify Web API
-- NPO API
-- GitHub Actions
+- Vanilla JavaScript (ES6+)
+- HTML5
+- CSS3
+- Spotify Web API (with PKCE authentication flow)
+- NPO Radio 2 API
 - GitHub Pages
 
 ## License
