@@ -54,7 +54,7 @@ let userPlaylists = [];
 // Utility Functions
 function generateRandomString(length) {
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const values = crypto.getRandomValues(new Uint8Array(length));
+    const values = window.crypto.getRandomValues(new Uint8Array(length));
     return values.reduce((acc, x) => acc + possible[x % possible.length], '');
 }
 
@@ -187,7 +187,7 @@ async function exchangeCodeForToken(code, codeVerifier) {
         const data = await response.json();
         console.log('✅ Successfully obtained access token');
         accessToken = data.access_token;
-        localStorage.removeItem('code_verifier');
+        sessionStorage.removeItem('code_verifier');
         
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -200,7 +200,7 @@ async function exchangeCodeForToken(code, codeVerifier) {
     } catch (err) {
         showError(`Failed to authenticate with Spotify: ${err.message}`);
         console.error('Token exchange error:', err);
-        localStorage.removeItem('code_verifier');
+        sessionStorage.removeItem('code_verifier');
     }
 }
 
@@ -214,7 +214,7 @@ async function authenticateSpotify() {
     const hashed = await sha256(codeVerifier);
     const codeChallenge = base64encode(hashed);
 
-    localStorage.setItem('code_verifier', codeVerifier);
+    sessionStorage.setItem('code_verifier', codeVerifier);
 
     const authUrl = `${SPOTIFY_AUTH_ENDPOINT}?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}&response_type=code&code_challenge_method=S256&code_challenge=${codeChallenge}&show_dialog=true`;
     window.location.href = authUrl;
@@ -791,12 +791,12 @@ function init() {
     
     if (code) {
         console.log('📝 Authorization code received:', code.substring(0, 20) + '...');
-        const codeVerifier = localStorage.getItem('code_verifier');
+        const codeVerifier = sessionStorage.getItem('code_verifier');
         if (codeVerifier) {
-            console.log('✅ Code verifier found in localStorage');
+            console.log('✅ Code verifier found in sessionStorage');
             exchangeCodeForToken(code, codeVerifier);
         } else {
-            console.error('❌ Code verifier not found in localStorage');
+            console.error('❌ Code verifier not found in sessionStorage');
             showError('Authenticatie sessie verlopen. Probeer opnieuw verbinding te maken met Spotify.');
             window.history.replaceState({}, document.title, window.location.pathname);
         }
