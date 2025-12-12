@@ -30,12 +30,14 @@ const playlistContext = document.getElementById('playlist-context');
 const stepConnect = document.getElementById('step-connect');
 const stepPlaylist = document.getElementById('step-playlist');
 const stepUrl = document.getElementById('step-url');
+const logoutSection = document.getElementById('logout-section');
 
 // Buttons
 const connectSpotifyButton = document.getElementById('connect-spotify-button');
 const logoutButton = document.getElementById('logout-button');
 const createNewPlaylistButton = document.getElementById('create-new-playlist-button');
 const selectExistingPlaylistButton = document.getElementById('select-existing-playlist-button');
+const changePlaylistButton = document.getElementById('change-playlist-button');
 const loadSongsButton = document.getElementById('load-songs-button');
 const addAllButton = document.getElementById('add-all-button');
 
@@ -106,11 +108,13 @@ function updateUISteps() {
         stepPlaylist.style.display = 'none';
         stepUrl.style.display = 'none';
         songsSection.style.display = 'none';
+        logoutSection.style.display = 'none';
     } else {
-        // Step 2: Connected - show playlist selection
+        // Step 2: Connected - show playlist selection and logout button
         stepConnect.style.display = 'none';
         stepPlaylist.style.display = 'block';
         stepUrl.style.display = 'none';
+        logoutSection.style.display = 'block';
     }
 }
 
@@ -126,10 +130,21 @@ function updatePlaylistContext() {
 }
 
 function showUrlStep() {
-    // Step 3: Show URL input, hide playlist selection
+    // Step 3: Show URL input, hide playlist selection, keep logout button visible
     stepPlaylist.style.display = 'none';
     stepUrl.style.display = 'block';
+    logoutSection.style.display = 'block';
     updatePlaylistContext();
+}
+
+function showPlaylistSelection() {
+    // Go back to playlist selection
+    stepPlaylist.style.display = 'block';
+    stepUrl.style.display = 'none';
+    songsSection.style.display = 'none';
+    existingPlaylistSelector.style.display = 'none';
+    logoutSection.style.display = 'block';
+    hideMessages();
 }
 
 function logout() {
@@ -554,6 +569,12 @@ async function addSongsToPlaylist(songIndices = null) {
                 playlist = await playlistResponse.json();
                 console.log('✅ Created new playlist:', playlist.name);
             }
+            
+            // Cache the playlist ID and switch to 'existing' mode to prevent creating duplicate playlists
+            selectedPlaylistId = playlist.id;
+            selectedPlaylistName = playlist.name;
+            selectedPlaylistMode = 'existing';
+            console.log('✅ Cached playlist ID for future song additions:', selectedPlaylistId);
         } else {
             // Use selected existing playlist
             if (!selectedPlaylistId) {
@@ -704,9 +725,14 @@ logoutButton.addEventListener('click', () => {
     logout();
 });
 
+changePlaylistButton.addEventListener('click', () => {
+    showPlaylistSelection();
+});
+
 createNewPlaylistButton.addEventListener('click', () => {
     selectedPlaylistMode = 'new';
     selectedPlaylistId = null;
+    selectedPlaylistName = null;
     hideMessages();
     showUrlStep();
 });

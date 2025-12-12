@@ -32,11 +32,15 @@
             </button>
         </div>
 
+        <!-- Logout button - always visible when connected -->
+        <div id="logout-section" class="logout-section" style="display: none;">
+            <button id="logout-button" class="logout-button">Uitloggen</button>
+        </div>
+
         <!-- Step 2: After connection - Select/Create playlist -->
         <div id="step-playlist" class="step-section" style="display: none;">
             <div class="message success-message" style="margin-bottom: 1rem;">
                 <strong>✅ Verbonden met Spotify!</strong>
-                <button id="logout-button" class="logout-button">Uitloggen</button>
             </div>
             
             <div class="playlist-selection">
@@ -61,6 +65,11 @@
         <!-- Step 3: Enter NPO URL and load songs -->
         <div id="step-url" class="step-section" style="display: none;">
             <div id="playlist-context" class="message info-message" style="margin-bottom: 1rem;">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <button id="change-playlist-button" class="secondary-button">
+                    🔄 Andere afspeellijst kiezen
+                </button>
             </div>
             <div class="url-input-section">
                 <h3>Voer je NPO Top 2000 link in:</h3>

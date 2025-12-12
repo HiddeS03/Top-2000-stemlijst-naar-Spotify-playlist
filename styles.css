@@ -295,9 +295,14 @@ h1 {
   margin-bottom: 2rem;
 }
 
+/* Logout section - always visible when connected */
+.logout-section {
+  text-align: right;
+  margin-bottom: 1rem;
+}
+
 /* Logout button */
 .logout-button {
-  float: right;
   padding: 0.5rem 1rem;
   background: #ff4444;
   color: white;
@@ -310,6 +315,23 @@ h1 {
 
 .logout-button:hover {
   background: #ff6666;
+}
+
+/* Secondary button - for changing playlist selection */
+.secondary-button {
+  padding: 0.5rem 1rem;
+  background: #252525;
+  color: #fff;
+  border: 2px solid #333;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.secondary-button:hover {
+  border-color: #1db954;
+  background: #2a2a2a;
 }
 
 /* Playlist selection */
@@ -499,11 +521,13 @@ h1 {
     padding: 1.5rem;
   }
   
+  .logout-section {
+    text-align: center;
+  }
+  
   .logout-button {
-    float: none;
-    display: block;
-    width: 100%;
-    margin-top: 0.5rem;
+    display: inline-block;
+    width: auto;
   }
 }
 
