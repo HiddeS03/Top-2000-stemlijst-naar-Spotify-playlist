@@ -14,7 +14,6 @@ let accessToken = '';
 
 // DOM Elements
 const npoLinkInput = document.getElementById('npo-link-input');
-const startButton = document.getElementById('start-button');
 const inputForm = document.getElementById('input-form');
 const errorMessageDiv = document.getElementById('error-message');
 const successMessageDiv = document.getElementById('success-message');
@@ -22,10 +21,33 @@ const songsSection = document.getElementById('songs-section');
 const songsList = document.getElementById('songs-list');
 const songsCount = document.getElementById('songs-count');
 const configWarning = document.getElementById('config-warning');
-const spotifyConnected = document.getElementById('spotify-connected');
 const loadingOverlay = document.getElementById('loading-overlay');
 const loadingText = document.getElementById('loading-text');
 const loadingProgress = document.getElementById('loading-progress');
+
+// Step sections
+const stepConnect = document.getElementById('step-connect');
+const stepPlaylist = document.getElementById('step-playlist');
+const stepUrl = document.getElementById('step-url');
+
+// Buttons
+const connectSpotifyButton = document.getElementById('connect-spotify-button');
+const logoutButton = document.getElementById('logout-button');
+const createNewPlaylistButton = document.getElementById('create-new-playlist-button');
+const selectExistingPlaylistButton = document.getElementById('select-existing-playlist-button');
+const continueToUrlButton = document.getElementById('continue-to-url-button');
+const loadSongsButton = document.getElementById('load-songs-button');
+const addAllButton = document.getElementById('add-all-button');
+
+// Playlist selection
+const existingPlaylistSelector = document.getElementById('existing-playlist-selector');
+const playlistDropdown = document.getElementById('playlist-dropdown');
+
+// State
+let selectedPlaylistMode = 'new'; // 'new' or 'existing'
+let selectedPlaylistId = null;
+let selectedPlaylistName = null;
+let userPlaylists = [];
 
 // Utility Functions
 function generateRandomString(length) {
@@ -75,12 +97,35 @@ function hideMessages() {
     successMessageDiv.style.display = 'none';
 }
 
-function updateSpotifyConnectionStatus() {
-    if (accessToken) {
-        spotifyConnected.style.display = 'block';
+function updateUISteps() {
+    if (!accessToken) {
+        // Step 1: Not connected - show connect button
+        stepConnect.style.display = 'block';
+        stepPlaylist.style.display = 'none';
+        stepUrl.style.display = 'none';
+        songsSection.style.display = 'none';
     } else {
-        spotifyConnected.style.display = 'none';
+        // Step 2: Connected - show playlist selection
+        stepConnect.style.display = 'none';
+        stepPlaylist.style.display = 'block';
+        stepUrl.style.display = 'none';
     }
+}
+
+function showUrlStep() {
+    // Step 3: Show URL input
+    stepUrl.style.display = 'block';
+}
+
+function logout() {
+    accessToken = '';
+    songs = [];
+    selectedPlaylistId = null;
+    selectedPlaylistName = null;
+    selectedPlaylistMode = 'new';
+    userPlaylists = [];
+    hideMessages();
+    updateUISteps();
 }
 
 // Authentication Functions
@@ -116,18 +161,12 @@ async function exchangeCodeForToken(code, codeVerifier) {
         
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        updateSpotifyConnectionStatus();
         
-        // Check if we have a pending link to process
-        const pendingLink = localStorage.getItem('pending_npo_link');
-        if (pendingLink) {
-            localStorage.removeItem('pending_npo_link');
-            npoLinkInput.value = pendingLink;
-            // Start the process automatically
-            setTimeout(() => startFullProcess(), 500);
-        } else {
-            showSuccess('Succesvol verbonden met Spotify! Je kunt nu je afspeellijst maken.');
-        }
+        // Load user playlists
+        loadUserPlaylists();
+        
+        updateUISteps();
+        showSuccess('Succesvol verbonden met Spotify! Kies nu een afspeellijst optie.');
     } catch (err) {
         showError(`Failed to authenticate with Spotify: ${err.message}`);
         console.error('Token exchange error:', err);
@@ -135,15 +174,10 @@ async function exchangeCodeForToken(code, codeVerifier) {
     }
 }
 
-async function authenticateSpotify(pendingLink = null) {
+async function authenticateSpotify() {
     if (!SPOTIFY_CLIENT_ID) {
         showError('Spotify Client ID is niet geconfigureerd. Bekijk de setup-instructies in de README.');
         return;
-    }
-
-    // Save the link for after authentication
-    if (pendingLink) {
-        localStorage.setItem('pending_npo_link', pendingLink);
     }
 
     const codeVerifier = generateRandomString(64);
@@ -154,6 +188,62 @@ async function authenticateSpotify(pendingLink = null) {
 
     const authUrl = `${SPOTIFY_AUTH_ENDPOINT}?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}&response_type=code&code_challenge_method=S256&code_challenge=${codeChallenge}&show_dialog=true`;
     window.location.href = authUrl;
+}
+
+async function loadUserPlaylists() {
+    try {
+        setLoading(true, 'Afspeellijsten ophalen...');
+        
+        const profileResponse = await fetch('https://api.spotify.com/v1/me', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        if (!profileResponse.ok) {
+            throw new Error('Kon gebruikersprofiel niet ophalen');
+        }
+        
+        const profile = await profileResponse.json();
+        const userId = profile.id;
+        
+        // Fetch all user playlists
+        let allPlaylists = [];
+        let offset = 0;
+        const limit = 50;
+        
+        while (true) {
+            const response = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists?limit=${limit}&offset=${offset}`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (!response.ok) break;
+            
+            const data = await response.json();
+            allPlaylists.push(...data.items);
+            
+            if (data.items.length < limit) break;
+            offset += limit;
+        }
+        
+        userPlaylists = allPlaylists;
+        
+        // Populate dropdown
+        playlistDropdown.innerHTML = '<option value="">Selecteer een afspeellijst...</option>';
+        allPlaylists.forEach(playlist => {
+            const option = document.createElement('option');
+            option.value = playlist.id;
+            option.textContent = playlist.name;
+            playlistDropdown.appendChild(option);
+        });
+        
+        setLoading(false);
+    } catch (err) {
+        console.error('Error loading playlists:', err);
+        setLoading(false);
+    }
 }
 
 // NPO Fetching Functions
@@ -392,77 +482,110 @@ async function getExistingPlaylistTracks(playlistId) {
     return trackUris;
 }
 
-async function createOrUpdateSpotifyPlaylist() {
+async function addSongsToPlaylist(songIndices = null) {
     if (songs.length === 0) {
         showError('Haal eerst nummers op van NPO.');
         return;
     }
 
-    setLoading(true, 'Spotify profiel ophalen...');
+    setLoading(true, 'Voorbereiding...');
     hideMessages();
 
     try {
-        // Get user profile
-        const profileResponse = await fetch('https://api.spotify.com/v1/me', {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
-        if (!profileResponse.ok) {
-            throw new Error('Kon Spotify gebruikersprofiel niet ophalen. Log opnieuw in.');
-        }
-
-        const profile = await profileResponse.json();
-        const playlistName = `NPO Radio 2 Top 2000 - ${new Date().getFullYear()}`;
-
-        // Check if playlist already exists
-        setLoading(true, 'Bestaande afspeellijst zoeken...');
-        let playlist = await findExistingPlaylist(profile.id, playlistName);
-        let existingTrackUris = [];
+        let playlist;
+        let playlistName;
         
-        if (playlist) {
-            console.log('✅ Found existing playlist:', playlist.name);
-            setLoading(true, 'Bestaande nummers ophalen...');
-            existingTrackUris = await getExistingPlaylistTracks(playlist.id);
-            console.log(`📋 Playlist has ${existingTrackUris.length} existing tracks`);
-        } else {
+        // Determine which playlist to use
+        if (selectedPlaylistMode === 'new') {
             // Create new playlist
             setLoading(true, 'Nieuwe afspeellijst aanmaken...');
-            const playlistResponse = await fetch(`https://api.spotify.com/v1/users/${profile.id}/playlists`, {
-                method: 'POST',
+            const profileResponse = await fetch('https://api.spotify.com/v1/me', {
                 headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: playlistName,
-                    description: 'Gegenereerd van NPO Radio 2 Top 2000 stem-inzending',
-                    public: false
-                })
+                    'Authorization': `Bearer ${accessToken}`
+                }
             });
 
-            if (!playlistResponse.ok) {
-                throw new Error('Kon Spotify afspeellijst niet aanmaken.');
+            if (!profileResponse.ok) {
+                throw new Error('Kon Spotify gebruikersprofiel niet ophalen.');
             }
 
+            const profile = await profileResponse.json();
+            playlistName = `NPO Radio 2 Top 2000 - ${new Date().getFullYear()}`;
+            
+            // Check if it already exists
+            const existingPlaylist = await findExistingPlaylist(profile.id, playlistName);
+            
+            if (existingPlaylist) {
+                playlist = existingPlaylist;
+                console.log('✅ Using existing playlist:', playlist.name);
+            } else {
+                const playlistResponse = await fetch(`https://api.spotify.com/v1/users/${profile.id}/playlists`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: playlistName,
+                        description: 'Gegenereerd van NPO Radio 2 Top 2000 stem-inzending',
+                        public: false
+                    })
+                });
+
+                if (!playlistResponse.ok) {
+                    throw new Error('Kon Spotify afspeellijst niet aanmaken.');
+                }
+
+                playlist = await playlistResponse.json();
+                console.log('✅ Created new playlist:', playlist.name);
+            }
+        } else {
+            // Use selected existing playlist
+            if (!selectedPlaylistId) {
+                throw new Error('Geen afspeellijst geselecteerd.');
+            }
+            
+            const playlistResponse = await fetch(`https://api.spotify.com/v1/playlists/${selectedPlaylistId}`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (!playlistResponse.ok) {
+                throw new Error('Kon afspeellijst niet ophalen.');
+            }
+            
             playlist = await playlistResponse.json();
-            console.log('✅ Created new playlist:', playlist.name);
+            playlistName = playlist.name;
         }
 
+        // Get existing tracks
+        setLoading(true, 'Bestaande nummers ophalen...');
+        const existingTrackUris = await getExistingPlaylistTracks(playlist.id);
+        console.log(`📋 Playlist has ${existingTrackUris.length} existing tracks`);
+
+        // Determine which songs to add
+        const songsToAdd = songIndices ? songIndices.map(i => songs[i]) : songs;
+        
         // Search for tracks
-        setLoading(true, 'Nummers zoeken op Spotify...', '0/' + songs.length);
+        setLoading(true, 'Nummers zoeken op Spotify...', '0/' + songsToAdd.length);
         const trackUris = [];
         let foundCount = 0;
+        let skippedCount = 0;
         
-        for (let i = 0; i < songs.length; i++) {
-            const song = songs[i];
+        for (let i = 0; i < songsToAdd.length; i++) {
+            const song = songsToAdd[i];
             try {
                 const uri = await searchSpotifyTrack(song.title, song.artist, accessToken);
                 if (uri) {
                     // Only add if not already in playlist
                     if (!existingTrackUris.includes(uri)) {
                         trackUris.push(uri);
+                        song.spotifyUri = uri;
+                        song.added = true;
+                    } else {
+                        skippedCount++;
+                        song.added = true;
                     }
                     foundCount++;
                 }
@@ -470,12 +593,12 @@ async function createOrUpdateSpotifyPlaylist() {
                 console.warn(`Niet gevonden: ${song.title} van ${song.artist}`);
             }
             
-            if ((i + 1) % 10 === 0 || i === songs.length - 1) {
-                setLoading(true, 'Nummers zoeken op Spotify...', `${i + 1}/${songs.length}`);
+            if ((i + 1) % 10 === 0 || i === songsToAdd.length - 1) {
+                setLoading(true, 'Nummers zoeken op Spotify...', `${i + 1}/${songsToAdd.length}`);
             }
         }
 
-        if (trackUris.length === 0 && existingTrackUris.length === 0) {
+        if (trackUris.length === 0 && skippedCount === 0) {
             throw new Error('Kon geen nummers vinden op Spotify.');
         }
 
@@ -499,18 +622,24 @@ async function createOrUpdateSpotifyPlaylist() {
 
         setLoading(false);
         
-        if (existingTrackUris.length > 0 && trackUris.length > 0) {
-            showSuccess(`${trackUris.length} nieuwe nummers toegevoegd! Totaal ${foundCount} van ${songs.length} nummers gevonden op Spotify.`);
-        } else if (existingTrackUris.length > 0) {
-            showSuccess(`Alle nummers staan al in de afspeellijst! Totaal ${existingTrackUris.length} nummers.`);
-        } else {
-            showSuccess(`Afspeellijst aangemaakt! ${foundCount} van ${songs.length} nummers gevonden op Spotify.`);
+        let message = '';
+        if (trackUris.length > 0 && skippedCount > 0) {
+            message = `${trackUris.length} nieuwe nummers toegevoegd! ${skippedCount} nummers stonden al in de afspeellijst.`;
+        } else if (trackUris.length > 0) {
+            message = `${trackUris.length} nummers toegevoegd aan "${playlistName}"!`;
+        } else if (skippedCount > 0) {
+            message = `Alle ${skippedCount} nummers stonden al in de afspeellijst.`;
         }
+        
+        showSuccess(message);
+        
+        // Refresh the song list to show added status
+        displaySongs();
         
         // Open playlist in Spotify
         window.open(playlist.external_urls.spotify, '_blank');
     } catch (err) {
-        showError(err.message || 'Er is een fout opgetreden bij het maken van de afspeellijst.');
+        showError(err.message || 'Er is een fout opgetreden bij het toevoegen van nummers.');
         console.error('Error:', err);
         setLoading(false);
     }
@@ -521,55 +650,97 @@ function displaySongs() {
     songsList.innerHTML = '';
     songsCount.textContent = songs.length;
     
-    const displayCount = Math.min(10, songs.length);
-    for (let i = 0; i < displayCount; i++) {
+    for (let i = 0; i < songs.length; i++) {
         const song = songs[i];
         const songItem = document.createElement('div');
         songItem.className = 'song-item';
-        songItem.innerHTML = `<strong>${song.title}</strong> - ${song.artist}`;
+        
+        const songInfo = document.createElement('div');
+        songInfo.className = 'song-info';
+        songInfo.innerHTML = `<strong>${song.title}</strong> - ${song.artist}`;
+        
+        const addButton = document.createElement('button');
+        addButton.className = 'song-add-button';
+        addButton.textContent = song.added ? '✓ Toegevoegd' : '➕ Toevoegen';
+        addButton.disabled = song.added || false;
+        if (song.added) {
+            addButton.classList.add('added');
+        }
+        
+        addButton.addEventListener('click', async () => {
+            addButton.disabled = true;
+            await addSongsToPlaylist([i]);
+        });
+        
+        songItem.appendChild(songInfo);
+        songItem.appendChild(addButton);
         songsList.appendChild(songItem);
-    }
-    
-    if (songs.length > 10) {
-        const moreItem = document.createElement('div');
-        moreItem.className = 'song-item more';
-        moreItem.textContent = `... en ${songs.length - 10} meer nummers`;
-        songsList.appendChild(moreItem);
     }
     
     songsSection.style.display = 'block';
 }
 
-// Main workflow function
-async function startFullProcess() {
+// Event Listeners
+connectSpotifyButton.addEventListener('click', () => {
+    authenticateSpotify();
+});
+
+logoutButton.addEventListener('click', () => {
+    logout();
+});
+
+createNewPlaylistButton.addEventListener('click', () => {
+    selectedPlaylistMode = 'new';
+    createNewPlaylistButton.classList.add('selected');
+    selectExistingPlaylistButton.classList.remove('selected');
+    existingPlaylistSelector.style.display = 'none';
+    selectedPlaylistId = null;
+});
+
+selectExistingPlaylistButton.addEventListener('click', () => {
+    selectedPlaylistMode = 'existing';
+    selectExistingPlaylistButton.classList.add('selected');
+    createNewPlaylistButton.classList.remove('selected');
+    existingPlaylistSelector.style.display = 'block';
+});
+
+playlistDropdown.addEventListener('change', (e) => {
+    selectedPlaylistId = e.target.value;
+    const selectedPlaylist = userPlaylists.find(p => p.id === selectedPlaylistId);
+    selectedPlaylistName = selectedPlaylist ? selectedPlaylist.name : null;
+});
+
+continueToUrlButton.addEventListener('click', () => {
+    if (selectedPlaylistMode === 'existing' && !selectedPlaylistId) {
+        showError('Selecteer eerst een afspeellijst.');
+        return;
+    }
+    hideMessages();
+    showUrlStep();
+});
+
+inputForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const link = npoLinkInput.value.trim();
     if (!link) {
         showError('Voer eerst een NPO link in.');
         return;
     }
 
-    // Check if authenticated
-    if (!accessToken) {
-        authenticateSpotify(link);
-        return;
-    }
-
     try {
         // Fetch songs
         await fetchSongsFromNPO(link);
-        
-        // Create/update playlist
-        await createOrUpdateSpotifyPlaylist();
+        setLoading(false);
     } catch (err) {
-        // Error already shown by individual functions
+        // Error already shown by fetchSongsFromNPO
         console.error('Process error:', err);
     }
-}
+});
 
-// Event Listeners
-inputForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    startFullProcess();
+addAllButton.addEventListener('click', async () => {
+    addAllButton.disabled = true;
+    await addSongsToPlaylist();
+    addAllButton.disabled = false;
 });
 
 // Initialize
@@ -596,7 +767,7 @@ function init() {
         }
     }
 
-    updateSpotifyConnectionStatus();
+    updateUISteps();
 }
 
 // Run initialization when DOM is ready

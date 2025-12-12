@@ -17,10 +17,6 @@
             <strong>Configuratie vereist:</strong> Spotify Client ID is niet geconfigureerd. Bekijk de README voor installatie-instructies.
         </div>
 
-        <div id="spotify-connected" class="message success-message" style="margin-bottom: 1rem; display: none;">
-            <strong>✅ Verbonden met Spotify!</strong> Klaar om je afspeellijst te maken.
-        </div>
-
         <div id="loading-overlay" class="loading-overlay" style="display: none;">
             <div class="loading-content">
                 <div class="spinner"></div>
@@ -29,38 +25,87 @@
             </div>
         </div>
 
-        <form id="input-form" class="input-form">
-            <div class="input-group">
-                <input
-                    type="text"
-                    id="npo-link-input"
-                    placeholder="Plak hier je NPO Radio 2 Top 2000 inzending link..."
-                    class="link-input"
-                />
-                <button type="submit" id="start-button" class="fetch-button">
-                    Verbind en Maak Afspeellijst
+        <!-- Step 1: Connect to Spotify -->
+        <div id="step-connect" class="step-section">
+            <button id="connect-spotify-button" class="spotify-button">
+                🔗 Verbind met Spotify
+            </button>
+        </div>
+
+        <!-- Step 2: After connection - Select/Create playlist -->
+        <div id="step-playlist" class="step-section" style="display: none;">
+            <div class="message success-message" style="margin-bottom: 1rem;">
+                <strong>✅ Verbonden met Spotify!</strong>
+                <button id="logout-button" class="logout-button">Uitloggen</button>
+            </div>
+            
+            <div class="playlist-selection">
+                <h3>Selecteer of maak een afspeellijst:</h3>
+                <div class="playlist-options">
+                    <button id="create-new-playlist-button" class="option-button selected">
+                        ➕ Nieuwe Top 2000 afspeellijst maken
+                    </button>
+                    <button id="select-existing-playlist-button" class="option-button">
+                        📋 Bestaande afspeellijst selecteren
+                    </button>
+                </div>
+                
+                <div id="existing-playlist-selector" style="display: none;">
+                    <select id="playlist-dropdown" class="playlist-dropdown">
+                        <option value="">Selecteer een afspeellijst...</option>
+                    </select>
+                </div>
+                
+                <button id="continue-to-url-button" class="continue-button">
+                    Doorgaan
                 </button>
             </div>
-        </form>
+        </div>
+
+        <!-- Step 3: Enter NPO URL and load songs -->
+        <div id="step-url" class="step-section" style="display: none;">
+            <div class="url-input-section">
+                <h3>Voer je NPO Top 2000 link in:</h3>
+                <form id="input-form" class="input-form">
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="npo-link-input"
+                            placeholder="Plak hier je NPO Radio 2 Top 2000 inzending link..."
+                            class="link-input"
+                        />
+                        <button type="submit" id="load-songs-button" class="fetch-button">
+                            Laad Nummers
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <div id="error-message" class="message error-message" style="display: none;"></div>
 
         <div id="success-message" class="message success-message" style="display: none;"></div>
 
+        <!-- Step 4: Display songs and add to playlist -->
         <div id="songs-section" class="songs-section" style="display: none;">
             <h2>Gevonden Nummers (<span id="songs-count">0</span>)</h2>
+            <div class="songs-actions">
+                <button id="add-all-button" class="action-button primary">
+                    ➕ Voeg alle nummers toe aan afspeellijst
+                </button>
+            </div>
             <div id="songs-list" class="songs-list"></div>
         </div>
 
         <div class="instructions">
             <h3>Hoe te gebruiken:</h3>
             <ol>
-                <li>Klik op "Verbind en Maak Afspeellijst" om eerst met Spotify te verbinden</li>
-                <li>Na authenticatie, ga naar de <a href="https://www.nporadio2.nl/nieuws/top2000/506d8c59-55fd-4950-a4aa-14ad2250c273/stem-nu-voor-de-npo-radio-2-top-2000" target="_blank" rel="noopener noreferrer">NPO Radio 2 Top 2000 stem-site</a> en maak je lijst</li>
-                <li>Als je klaar bent met stemmen, ga naar de plek waar je je lijst hebt gedeeld en kopieer de link van je inzending (bijv., https://npo.nl/luister/stem/.../inzending/...)</li>
-                <li>Plak de URL hierboven en klik opnieuw op "Verbind en Maak Afspeellijst"</li>
-                <li>Je afspeellijst wordt aangemaakt en automatisch geopend!</li>
-                <li>Als de afspeellijst al bestaat, worden nieuwe nummers toegevoegd</li>
+                <li>Klik op "Verbind met Spotify" om te authenticeren</li>
+                <li>Kies of je een nieuwe Top 2000 afspeellijst wilt maken of een bestaande wilt selecteren</li>
+                <li>Ga naar de <a href="https://www.nporadio2.nl/nieuws/top2000/506d8c59-55fd-4950-a4aa-14ad2250c273/stem-nu-voor-de-npo-radio-2-top-2000" target="_blank" rel="noopener noreferrer">NPO Radio 2 Top 2000 stem-site</a> en maak je lijst</li>
+                <li>Kopieer de link van je inzending (bijv., https://npo.nl/luister/stem/.../inzending/...)</li>
+                <li>Plak de URL en klik op "Laad Nummers" om je nummers op te halen</li>
+                <li>Voeg alle nummers in één keer toe of voeg ze individueel toe aan je afspeellijst</li>
             </ol>
         </div>
     </div>
