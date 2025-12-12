@@ -35,7 +35,6 @@ const connectSpotifyButton = document.getElementById('connect-spotify-button');
 const logoutButton = document.getElementById('logout-button');
 const createNewPlaylistButton = document.getElementById('create-new-playlist-button');
 const selectExistingPlaylistButton = document.getElementById('select-existing-playlist-button');
-const continueToUrlButton = document.getElementById('continue-to-url-button');
 const loadSongsButton = document.getElementById('load-songs-button');
 const addAllButton = document.getElementById('add-all-button');
 
@@ -71,7 +70,9 @@ function base64encode(input) {
 
 function setLoading(isLoading, text = 'Bezig...', progress = '') {
     loading = isLoading;
-    startButton.disabled = isLoading;
+    if (loadSongsButton) {
+        loadSongsButton.disabled = isLoading;
+    }
     npoLinkInput.disabled = isLoading;
     loadingOverlay.style.display = isLoading ? 'flex' : 'none';
     loadingText.textContent = text;
@@ -113,7 +114,8 @@ function updateUISteps() {
 }
 
 function showUrlStep() {
-    // Step 3: Show URL input
+    // Step 3: Show URL input, hide playlist selection
+    stepPlaylist.style.display = 'none';
     stepUrl.style.display = 'block';
 }
 
@@ -691,32 +693,26 @@ logoutButton.addEventListener('click', () => {
 
 createNewPlaylistButton.addEventListener('click', () => {
     selectedPlaylistMode = 'new';
-    createNewPlaylistButton.classList.add('selected');
-    selectExistingPlaylistButton.classList.remove('selected');
-    existingPlaylistSelector.style.display = 'none';
     selectedPlaylistId = null;
+    hideMessages();
+    showUrlStep();
 });
 
 selectExistingPlaylistButton.addEventListener('click', () => {
     selectedPlaylistMode = 'existing';
-    selectExistingPlaylistButton.classList.add('selected');
-    createNewPlaylistButton.classList.remove('selected');
     existingPlaylistSelector.style.display = 'block';
+    hideMessages();
 });
 
 playlistDropdown.addEventListener('change', (e) => {
     selectedPlaylistId = e.target.value;
     const selectedPlaylist = userPlaylists.find(p => p.id === selectedPlaylistId);
     selectedPlaylistName = selectedPlaylist ? selectedPlaylist.name : null;
-});
-
-continueToUrlButton.addEventListener('click', () => {
-    if (selectedPlaylistMode === 'existing' && !selectedPlaylistId) {
-        showError('Selecteer eerst een afspeellijst.');
-        return;
+    
+    // Automatically proceed to URL input step when a playlist is selected
+    if (selectedPlaylistId) {
+        showUrlStep();
     }
-    hideMessages();
-    showUrlStep();
 });
 
 inputForm.addEventListener('submit', async (e) => {
