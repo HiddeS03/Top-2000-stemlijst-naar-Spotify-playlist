@@ -144,6 +144,11 @@ h1 {
   color: white;
 }
 
+.info-message {
+  background: #2962ff;
+  color: white;
+}
+
 .songs-section {
   margin-top: 2rem;
   padding: 1.5rem;

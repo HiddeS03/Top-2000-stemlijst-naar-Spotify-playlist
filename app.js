@@ -24,6 +24,7 @@ const configWarning = document.getElementById('config-warning');
 const loadingOverlay = document.getElementById('loading-overlay');
 const loadingText = document.getElementById('loading-text');
 const loadingProgress = document.getElementById('loading-progress');
+const playlistContext = document.getElementById('playlist-context');
 
 // Step sections
 const stepConnect = document.getElementById('step-connect');
@@ -113,10 +114,22 @@ function updateUISteps() {
     }
 }
 
+function updatePlaylistContext() {
+    if (selectedPlaylistMode === 'new') {
+        const year = new Date().getFullYear();
+        playlistContext.innerHTML = `Nieuwe afspeellijst maken: "NPO Radio 2 Top 2000 - ${year}"`;
+    } else if (selectedPlaylistMode === 'existing' && selectedPlaylistName) {
+        // Escape HTML to prevent XSS
+        const escapedName = selectedPlaylistName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        playlistContext.innerHTML = `<strong>📝 Nummers toevoegen aan:</strong>"${escapedName}"`;
+    }
+}
+
 function showUrlStep() {
     // Step 3: Show URL input, hide playlist selection
     stepPlaylist.style.display = 'none';
     stepUrl.style.display = 'block';
+    updatePlaylistContext();
 }
 
 function logout() {
