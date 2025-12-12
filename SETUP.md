@@ -17,8 +17,8 @@ This guide will walk you through setting up the Top 2000 to Spotify converter ap
    - **App name**: `Top 2000 to Spotify Converter` (or your preferred name)
    - **App description**: `Convert NPO Radio 2 Top 2000 voting lists to Spotify playlists`
    - **Redirect URI**: Add the following URIs:
-     - For GitHub Pages: `https://YOUR_USERNAME.github.io/top2000-to-spotify/`
-     - For local development: `http://localhost:5173/top2000-to-spotify/`
+     - For GitHub Pages: `https://YOUR_USERNAME.github.io/Top-2000-stemlijst-naar-Spotify-playlist/`
+     - For local development: `http://localhost:5173/Top-2000-stemlijst-naar-Spotify-playlist/`
    - **Which API/SDKs are you planning to use?**: Select `Web API`
 5. Accept the Terms of Service
 6. Click "Save"
@@ -29,8 +29,8 @@ This guide will walk you through setting up the Top 2000 to Spotify converter ap
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/HiddeS03/top2000-to-spotify.git
-   cd top2000-to-spotify
+   git clone https://github.com/HiddeS03/Top-2000-stemlijst-naar-Spotify-playlist.git
+   cd Top-2000-stemlijst-naar-Spotify-playlist
    ```
 
 2. Install dependencies:
@@ -57,7 +57,7 @@ This guide will walk you through setting up the Top 2000 to Spotify converter ap
    pnpm dev
    ```
 
-6. Open your browser and navigate to `http://localhost:5173/top2000-to-spotify/`
+6. Open your browser and navigate to `http://localhost:5173/Top-2000-stemlijst-naar-Spotify-playlist/`
 
 ## Step 3: Deploy to GitHub Pages
 
@@ -80,17 +80,17 @@ This guide will walk you through setting up the Top 2000 to Spotify converter ap
    ```
 
 9. The GitHub Actions workflow will automatically build and deploy your site
-10. Your app will be available at `https://YOUR_USERNAME.github.io/top2000-to-spotify/`
+10. Your app will be available at `https://YOUR_USERNAME.github.io/Top-2000-stemlijst-naar-Spotify-playlist/`
 
 ## Step 4: Using the Application
 
-1. Visit the [NPO Radio 2 Top 2000 voting site](https://npo.nl/luister/stem/npo-radio-2-top-2000-2025)
-2. Create and submit your Top 2000 list
-3. After submission, copy the URL from your browser (it should look like: `https://npo.nl/luister/stem/npo-radio-2-top-2000-2025/inzending/019ae423-5404-729d-818e-b85e011a546f`)
-4. Go to your deployed application
-5. Paste the URL in the input field
-6. Click "Fetch Songs" to retrieve your list
-7. Click "Connect to Spotify" to authenticate
+1. Go to your deployed application
+2. Click "Connect and Create Playlist" to first connect to Spotify
+3. After authentication, visit the [NPO Radio 2 Top 2000 voting site](https://www.nporadio2.nl/nieuws/top2000/506d8c59-55fd-4950-a4aa-14ad2250c273/stem-nu-voor-de-npo-radio-2-top-2000)
+4. Create and submit your Top 2000 list
+5. When you're done voting, go to the place where you shared your list and copy the link (it should look like: `https://npo.nl/luister/stem/npo-radio-2-top-2000-2025/inzending/019ae423-5404-729d-818e-b85e011a546f`)
+6. Paste the URL in the input field on the application
+7. Click "Connect and Create Playlist" again
 8. The app will create a playlist with your Top 2000 songs!
 
 ## Troubleshooting
@@ -119,4 +119,4 @@ This guide will walk you through setting up the Top 2000 to Spotify converter ap
 
 ## Support
 
-For issues or questions, please open an issue on the [GitHub repository](https://github.com/HiddeS03/top2000-to-spotify/issues).
+For issues or questions, please open an issue on the [GitHub repository](https://github.com/HiddeS03/Top-2000-stemlijst-naar-Spotify-playlist/issues).
